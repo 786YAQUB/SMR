@@ -1,0 +1,963 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MediCare Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --teal: #4ecdc4; --coral: #ff6b6b; --gold: #feca57;
+  --purple: #5f27cd; --blue: #45b7d1; --green: #96ceb4;
+  --navy: #0d1b2a; --navy2: #1a2e44; --navy3: #243447; --navy4: #2d3f52;
+  --glass: rgba(255,255,255,0.06); --glass2: rgba(255,255,255,0.04);
+  --glass-border: rgba(255,255,255,0.1); --glass-border2: rgba(255,255,255,0.07);
+  --text: #e8f4f8; --text2: #b8d4e0; --muted: #7fa8bc;
+  --radius: 16px; --sidebar: 260px;
+  --font-d: 'Syne', sans-serif; --font-b: 'DM Sans', sans-serif;
+}
+html, body { height: 100%; background: var(--navy); color: var(--text); font-family: var(--font-b); }
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--navy4); border-radius: 4px; }
+
+/* ── Background ── */
+.bg-orbs { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
+.orb { position: absolute; border-radius: 50%; filter: blur(90px); opacity: 0.1; animation: float 14s ease-in-out infinite alternate; }
+.orb1 { width: 600px; height: 600px; background: var(--teal); top: -200px; left: -100px; }
+.orb2 { width: 400px; height: 400px; background: var(--coral); bottom: -100px; right: -80px; animation-delay: -6s; }
+@keyframes float { from { transform: translateY(0); } to { transform: translateY(-30px); } }
+
+/* ── App Layout ── */
+.app { display: flex; height: 100vh; position: relative; z-index: 1; }
+
+/* ── Sidebar ── */
+.sidebar {
+  width: var(--sidebar); flex-shrink: 0;
+  background: linear-gradient(180deg, var(--navy2) 0%, var(--navy) 100%);
+  border-right: 1px solid var(--glass-border2);
+  display: flex; flex-direction: column;
+  padding: 0; overflow: hidden;
+  transition: transform 0.3s ease;
+}
+.sidebar-logo {
+  padding: 24px 24px 20px;
+  font-family: var(--font-d); font-size: 1.4rem; font-weight: 800;
+  background: linear-gradient(135deg, var(--teal), var(--blue));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  border-bottom: 1px solid var(--glass-border2);
+}
+.user-card {
+  padding: 20px 24px;
+  display: flex; align-items: center; gap: 12px;
+  border-bottom: 1px solid var(--glass-border2);
+}
+.avatar {
+  width: 42px; height: 42px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-d); font-weight: 700; font-size: 1.1rem;
+  flex-shrink: 0; color: var(--navy);
+}
+.user-name { font-family: var(--font-d); font-weight: 600; font-size: 0.9rem; line-height: 1.2; }
+.user-email { font-size: 0.73rem; color: var(--muted); }
+
+.nav { flex: 1; padding: 16px 12px; overflow-y: auto; }
+.nav-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 11px 14px; border-radius: 12px;
+  font-size: 0.88rem; font-weight: 500; cursor: pointer;
+  color: var(--muted); margin-bottom: 2px;
+  transition: all 0.2s ease; border: 1px solid transparent;
+  user-select: none;
+}
+.nav-item:hover { color: var(--text); background: var(--glass); }
+.nav-item.active {
+  color: var(--teal); background: rgba(78,205,196,0.1);
+  border-color: rgba(78,205,196,0.2);
+}
+.nav-icon { font-size: 1.1rem; width: 22px; text-align: center; }
+.nav-badge {
+  margin-left: auto; background: var(--coral);
+  color: #fff; font-size: 0.68rem; font-weight: 700;
+  padding: 2px 7px; border-radius: 20px; min-width: 20px; text-align: center;
+}
+
+.sidebar-footer { padding: 16px 12px; border-top: 1px solid var(--glass-border2); }
+.logout-btn {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  padding: 11px 14px; border-radius: 12px; border: none;
+  background: rgba(255,107,107,0.08); color: var(--coral);
+  font-family: var(--font-b); font-size: 0.88rem; cursor: pointer;
+  transition: background 0.2s;
+}
+.logout-btn:hover { background: rgba(255,107,107,0.16); }
+
+/* ── Main Content ── */
+.main { flex: 1; overflow-y: auto; overflow-x: hidden; }
+.page-view { display: none; padding: 32px; min-height: 100%; }
+.page-view.active { display: block; }
+
+/* ── Header ── */
+.page-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 28px; flex-wrap: wrap; gap: 12px;
+}
+.page-title { font-family: var(--font-d); font-size: 1.7rem; font-weight: 800; }
+.page-subtitle { font-size: 0.85rem; color: var(--muted); margin-top: 2px; }
+
+/* ── Cards / Glass ── */
+.card {
+  background: var(--glass); border: 1px solid var(--glass-border2);
+  border-radius: var(--radius); padding: 24px;
+  backdrop-filter: blur(12px);
+}
+.card-sm { padding: 18px 20px; }
+
+/* ── Stat cards ── */
+.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 28px; }
+.stat-card {
+  background: var(--glass); border: 1px solid var(--glass-border2);
+  border-radius: var(--radius); padding: 20px;
+  display: flex; flex-direction: column; gap: 8px;
+  position: relative; overflow: hidden;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.stat-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.2); }
+.stat-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  background: var(--accent, var(--teal));
+}
+.stat-icon { font-size: 1.6rem; margin-bottom: 4px; }
+.stat-val { font-family: var(--font-d); font-size: 2rem; font-weight: 800; }
+.stat-label { font-size: 0.78rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+
+/* ── Today's schedule ── */
+.schedule-wrap { display: flex; flex-direction: column; gap: 12px; }
+.dose-item {
+  display: flex; align-items: center; gap: 16px;
+  background: var(--glass); border: 1px solid var(--glass-border2);
+  border-radius: 14px; padding: 14px 18px;
+  transition: all 0.2s ease;
+}
+.dose-item:hover { border-color: var(--glass-border); background: rgba(255,255,255,0.08); }
+.dose-time {
+  font-family: var(--font-d); font-weight: 700; font-size: 1rem;
+  min-width: 52px; text-align: center; color: var(--teal);
+}
+.dose-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.dose-info { flex: 1; }
+.dose-name { font-weight: 600; font-size: 0.95rem; }
+.dose-meta { font-size: 0.78rem; color: var(--muted); margin-top: 2px; }
+.dose-status {
+  font-size: 0.75rem; font-weight: 600; padding: 4px 12px;
+  border-radius: 20px; white-space: nowrap;
+}
+.status-pending { background: rgba(254,202,87,0.15); color: var(--gold); border: 1px solid rgba(254,202,87,0.25); }
+.status-taken   { background: rgba(78,205,196,0.15); color: var(--teal); border: 1px solid rgba(78,205,196,0.25); }
+.status-skipped { background: rgba(255,107,107,0.15); color: var(--coral); border: 1px solid rgba(255,107,107,0.25); }
+.status-missed  { background: rgba(127,168,188,0.15); color: var(--muted); border: 1px solid rgba(127,168,188,0.2); }
+
+.dose-actions { display: flex; gap: 6px; }
+.dose-btn {
+  padding: 6px 12px; border-radius: 8px; font-size: 0.78rem;
+  font-weight: 600; cursor: pointer; border: 1px solid;
+  transition: all 0.15s; font-family: var(--font-b);
+}
+.take-btn  { border-color: rgba(78,205,196,0.4); color: var(--teal); background: rgba(78,205,196,0.08); }
+.skip-btn  { border-color: rgba(255,107,107,0.4); color: var(--coral); background: rgba(255,107,107,0.08); }
+.take-btn:hover  { background: rgba(78,205,196,0.2); }
+.skip-btn:hover  { background: rgba(255,107,107,0.2); }
+
+/* ── Section header ── */
+.section-hdr {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 16px;
+}
+.section-title { font-family: var(--font-d); font-weight: 700; font-size: 1.1rem; }
+
+/* ── Medicine cards ── */
+.meds-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+.med-card {
+  background: var(--glass); border: 1px solid var(--glass-border2);
+  border-radius: var(--radius); padding: 20px;
+  transition: all 0.2s; cursor: default;
+  position: relative; overflow: hidden;
+}
+.med-card:hover { border-color: var(--glass-border); transform: translateY(-2px); }
+.med-card::after {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+  background: var(--med-color, var(--teal)); border-radius: 4px 0 0 4px;
+}
+.med-card-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 12px; }
+.med-icon { font-size: 1.8rem; }
+.med-actions { display: flex; gap: 6px; }
+.med-action-btn {
+  width: 30px; height: 30px; border-radius: 8px; border: 1px solid var(--glass-border);
+  background: var(--glass); color: var(--muted); cursor: pointer;
+  display: flex; align-items: center; justify-content: center; font-size: 0.85rem;
+  transition: all 0.15s;
+}
+.med-action-btn:hover { color: var(--text); background: var(--navy3); }
+.med-name { font-family: var(--font-d); font-weight: 700; font-size: 1rem; margin-bottom: 4px; }
+.med-dose { font-size: 0.82rem; color: var(--muted); margin-bottom: 10px; }
+.med-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.tag {
+  font-size: 0.72rem; padding: 3px 10px; border-radius: 20px;
+  background: rgba(255,255,255,0.06); border: 1px solid var(--glass-border2);
+  color: var(--text2);
+}
+.med-inactive { opacity: 0.5; }
+
+/* ── Modal ── */
+.modal-overlay {
+  display: none; position: fixed; inset: 0; z-index: 100;
+  background: rgba(13,27,42,0.8); backdrop-filter: blur(8px);
+  align-items: center; justify-content: center; padding: 20px;
+}
+.modal-overlay.show { display: flex; }
+.modal {
+  background: var(--navy2); border: 1px solid var(--glass-border);
+  border-radius: 24px; padding: 32px; width: 100%; max-width: 540px;
+  max-height: 90vh; overflow-y: auto;
+  animation: slideUp 0.3s ease;
+}
+@keyframes slideUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+.modal-title { font-family: var(--font-d); font-size: 1.3rem; font-weight: 700; margin-bottom: 24px; }
+.modal-footer { display: flex; gap: 10px; margin-top: 24px; justify-content: flex-end; }
+
+/* ── Form elements in modal ── */
+.field { margin-bottom: 16px; }
+.field label { display: block; font-size: 0.78rem; font-weight: 500; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+.field input, .field select, .field textarea {
+  width: 100%; padding: 11px 14px;
+  background: rgba(255,255,255,0.06); border: 1px solid var(--glass-border);
+  border-radius: 10px; color: var(--text); font-family: var(--font-b); font-size: 0.88rem;
+  outline: none; transition: border-color 0.2s, box-shadow 0.2s; resize: vertical;
+}
+.field input::placeholder, .field textarea::placeholder { color: rgba(255,255,255,0.25); }
+.field input:focus, .field select:focus, .field textarea:focus { border-color: var(--teal); box-shadow: 0 0 0 3px rgba(78,205,196,0.12); }
+.field select option { background: var(--navy2); }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+/* ── Time chips ── */
+.time-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.time-chip {
+  display: flex; align-items: center; gap: 6px;
+  background: rgba(78,205,196,0.12); border: 1px solid rgba(78,205,196,0.3);
+  color: var(--teal); border-radius: 20px; padding: 4px 12px; font-size: 0.82rem;
+  font-weight: 600;
+}
+.time-chip .del { cursor: pointer; opacity: 0.7; }
+.time-chip .del:hover { opacity: 1; }
+
+/* ── Buttons ── */
+.btn { padding: 11px 22px; border-radius: 10px; font-family: var(--font-d); font-weight: 700; font-size: 0.88rem; cursor: pointer; border: none; transition: all 0.15s; }
+.btn-primary { background: linear-gradient(135deg, var(--teal), var(--blue)); color: var(--navy); }
+.btn-primary:hover { box-shadow: 0 6px 20px rgba(78,205,196,0.35); transform: translateY(-1px); }
+.btn-ghost { background: var(--glass); border: 1px solid var(--glass-border); color: var(--text2); }
+.btn-ghost:hover { background: var(--navy3); }
+.btn-danger { background: rgba(255,107,107,0.15); border: 1px solid rgba(255,107,107,0.3); color: var(--coral); }
+.btn-danger:hover { background: rgba(255,107,107,0.25); }
+.btn-sm { padding: 7px 14px; font-size: 0.8rem; }
+
+/* ── Color picker ── */
+.color-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.color-dot {
+  width: 28px; height: 28px; border-radius: 50%; cursor: pointer;
+  border: 2px solid transparent; transition: transform 0.15s, border-color 0.15s;
+}
+.color-dot:hover { transform: scale(1.1); }
+.color-dot.selected { border-color: white; transform: scale(1.15); }
+
+/* ── Adherence bar ── */
+.adherence-bar { height: 8px; background: rgba(255,255,255,0.08); border-radius: 4px; overflow: hidden; }
+.adherence-fill { height: 100%; border-radius: 4px; background: linear-gradient(90deg, var(--teal), var(--blue)); transition: width 1s ease; }
+
+/* ── Log list ── */
+.log-list { display: flex; flex-direction: column; gap: 8px; }
+.log-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 16px; background: var(--glass);
+  border: 1px solid var(--glass-border2); border-radius: 12px;
+}
+.log-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.log-info { flex: 1; }
+.log-name { font-size: 0.88rem; font-weight: 500; }
+.log-time { font-size: 0.75rem; color: var(--muted); }
+.log-status-badge { font-size: 0.72rem; font-weight: 600; padding: 3px 10px; border-radius: 20px; }
+
+/* ── Health notes ── */
+.notes-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; }
+.note-card {
+  background: var(--glass); border: 1px solid var(--glass-border2);
+  border-radius: 14px; padding: 16px;
+}
+.note-mood { font-size: 1.4rem; margin-bottom: 8px; }
+.note-text { font-size: 0.85rem; line-height: 1.6; color: var(--text2); }
+.note-date { font-size: 0.72rem; color: var(--muted); margin-top: 10px; }
+
+/* ── Profile ── */
+.profile-avatar-wrap { display: flex; align-items: center; gap: 20px; margin-bottom: 28px; }
+.profile-avatar { width: 72px; height: 72px; border-radius: 20px; font-size: 1.8rem; }
+
+/* ── Empty state ── */
+.empty-state { text-align: center; padding: 60px 20px; color: var(--muted); }
+.empty-icon { font-size: 3rem; margin-bottom: 12px; }
+.empty-title { font-family: var(--font-d); font-size: 1.1rem; margin-bottom: 6px; color: var(--text2); }
+.empty-desc { font-size: 0.85rem; }
+
+/* ── Toast ── */
+.toast-wrap { position: fixed; top: 20px; right: 20px; z-index: 200; display: flex; flex-direction: column; gap: 8px; }
+.toast {
+  padding: 12px 18px; border-radius: 12px; font-size: 0.85rem; font-weight: 500;
+  display: flex; align-items: center; gap: 8px;
+  animation: toastIn 0.3s ease; min-width: 220px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+}
+.toast.success { background: linear-gradient(135deg,rgba(78,205,196,0.9),rgba(69,183,209,0.9)); color: var(--navy); }
+.toast.error   { background: rgba(255,107,107,0.9); color: white; }
+@keyframes toastIn { from { opacity:0; transform: translateX(20px); } to { opacity:1; transform: translateX(0); } }
+
+/* ── Mobile menu toggle ── */
+.menu-toggle { display: none; background: var(--glass); border: 1px solid var(--glass-border); border-radius: 10px; padding: 8px 12px; cursor: pointer; color: var(--text); font-size: 1.1rem; }
+@media(max-width:768px) {
+  .menu-toggle { display: flex; }
+  .sidebar { position: fixed; left: 0; top: 0; bottom: 0; z-index: 50; transform: translateX(-100%); }
+  .sidebar.open { transform: translateX(0); }
+  .sidebar-backdrop { display: none; position: fixed; inset: 0; z-index: 49; background: rgba(0,0,0,0.5); }
+  .sidebar-backdrop.show { display: block; }
+  .page-view { padding: 20px 16px; }
+}
+
+/* Progress ring for adherence */
+.ring-wrap { display: flex; align-items: center; justify-content: center; position: relative; }
+.ring-text { position: absolute; text-align: center; }
+.ring-pct { font-family: var(--font-d); font-size: 1.6rem; font-weight: 800; }
+.ring-lbl { font-size: 0.65rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+
+/* Grid split */
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+@media(max-width:860px) { .two-col { grid-template-columns: 1fr; } }
+
+/* Streak flame */
+.streak-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+.streak-day { width: 24px; height: 24px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 0.65rem; font-weight: 700; }
+</style>
+</head>
+<body>
+<div class="bg-orbs"><div class="orb orb1"></div><div class="orb orb2"></div></div>
+<div class="toast-wrap" id="toastWrap"></div>
+<div class="sidebar-backdrop" id="backdrop" onclick="closeSidebar()"></div>
+
+<div class="app">
+<!-- ── Sidebar ── -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">💊 MediCare</div>
+  <div class="user-card">
+    <div class="avatar" id="sideAvatar" style="background:#4ecdc4">?</div>
+    <div><div class="user-name" id="sideName">Loading...</div><div class="user-email" id="sideEmail"></div></div>
+  </div>
+  <nav class="nav">
+    <div class="nav-item active" onclick="showPage('dashboard')"><span class="nav-icon">🏠</span> Dashboard</div>
+    <div class="nav-item" onclick="showPage('today')"><span class="nav-icon">📋</span> Today's Schedule <span class="nav-badge" id="pendingBadge" style="display:none">0</span></div>
+    <div class="nav-item" onclick="showPage('medicines')"><span class="nav-icon">💊</span> My Medicines</div>
+    <div class="nav-item" onclick="showPage('history')"><span class="nav-icon">📊</span> History & Logs</div>
+    <div class="nav-item" onclick="showPage('notes')"><span class="nav-icon">📓</span> Health Diary</div>
+    <div class="nav-item" onclick="showPage('profile')"><span class="nav-icon">👤</span> Profile</div>
+  </nav>
+  <div class="sidebar-footer">
+    <button class="logout-btn" onclick="logout()">🚪 Sign Out</button>
+  </div>
+</aside>
+
+<!-- ── Main ── -->
+<main class="main">
+  <!-- Mobile topbar -->
+  <div style="display:flex;align-items:center;gap:12px;padding:16px 20px 0;position:sticky;top:0;background:var(--navy);z-index:10;">
+    <button class="menu-toggle" onclick="openSidebar()">☰</button>
+    <span style="font-family:var(--font-d);font-weight:700;font-size:1.1rem;background:linear-gradient(135deg,var(--teal),var(--blue));-webkit-background-clip:text;-webkit-text-fill-color:transparent">MediCare</span>
+    <span style="margin-left:auto;font-size:0.8rem;color:var(--muted)" id="topDate"></span>
+  </div>
+
+  <!-- ─────────── DASHBOARD ─────────── -->
+  <div class="page-view active" id="dashboardPage">
+    <div class="page-header">
+      <div><div class="page-title">Good <span id="greeting">day</span> 👋</div><div class="page-subtitle" id="dashSubtitle">Here's your health overview</div></div>
+    </div>
+    <div class="stats-grid">
+      <div class="stat-card" style="--accent:var(--teal)"><div class="stat-icon">💊</div><div class="stat-val" id="statMeds">-</div><div class="stat-label">Active Medicines</div></div>
+      <div class="stat-card" style="--accent:var(--green)"><div class="stat-icon">🎯</div><div class="stat-val" id="statAdherence">-%</div><div class="stat-label">30-Day Adherence</div></div>
+      <div class="stat-card" style="--accent:var(--gold)"><div class="stat-icon">🔥</div><div class="stat-val" id="statStreak">-</div><div class="stat-label">Day Streak</div></div>
+      <div class="stat-card" style="--accent:var(--coral)"><div class="stat-icon">⏰</div><div class="stat-val" id="statToday">-</div><div class="stat-label">Doses Today</div></div>
+    </div>
+    <div class="two-col">
+      <div>
+        <div class="section-hdr"><span class="section-title">Today's Next Doses</span><button class="btn btn-ghost btn-sm" onclick="showPage('today')">See All →</button></div>
+        <div class="schedule-wrap" id="dashSchedule"><div class="empty-state"><div class="empty-icon">😴</div><div class="empty-title">Loading...</div></div></div>
+      </div>
+      <div>
+        <div class="section-hdr"><span class="section-title">Adherence (30 days)</span></div>
+        <div class="card">
+          <div style="display:flex;align-items:center;gap:24px;">
+            <div class="ring-wrap">
+              <svg width="110" height="110" viewBox="0 0 110 110">
+                <circle cx="55" cy="55" r="45" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="10"/>
+                <circle id="adherenceRing" cx="55" cy="55" r="45" fill="none" stroke="url(#grad)" stroke-width="10" stroke-linecap="round" stroke-dasharray="283" stroke-dashoffset="283" transform="rotate(-90 55 55)"/>
+                <defs><linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#4ecdc4"/><stop offset="100%" stop-color="#45b7d1"/></linearGradient></defs>
+              </svg>
+              <div class="ring-text"><div class="ring-pct" id="adherencePct">-</div><div class="ring-lbl">Taken</div></div>
+            </div>
+            <div style="flex:1">
+              <div style="margin-bottom:12px"><div style="font-size:0.78rem;color:var(--muted);margin-bottom:4px">✅ Taken</div><div class="adherence-bar"><div class="adherence-fill" id="takenBar" style="width:0%;background:linear-gradient(90deg,var(--teal),var(--blue))"></div></div><div style="font-size:0.78rem;color:var(--teal);margin-top:2px" id="takenCount">-</div></div>
+              <div style="margin-bottom:12px"><div style="font-size:0.78rem;color:var(--muted);margin-bottom:4px">⏭ Skipped</div><div class="adherence-bar"><div class="adherence-fill" id="skippedBar" style="width:0%;background:var(--gold)"></div></div><div style="font-size:0.78rem;color:var(--gold);margin-top:2px" id="skippedCount">-</div></div>
+              <div><div style="font-size:0.78rem;color:var(--muted);margin-bottom:4px">❌ Missed</div><div class="adherence-bar"><div class="adherence-fill" id="missedBar" style="width:0%;background:var(--coral)"></div></div><div style="font-size:0.78rem;color:var(--coral);margin-top:2px" id="missedCount">-</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────── TODAY ─────────── -->
+  <div class="page-view" id="todayPage">
+    <div class="page-header">
+      <div><div class="page-title">Today's Schedule 📋</div><div class="page-subtitle" id="todayDate">Loading...</div></div>
+      <button class="btn btn-primary btn-sm" onclick="loadTodaySchedule()">🔄 Refresh</button>
+    </div>
+    <div class="schedule-wrap" id="todaySchedule"><div class="empty-state"><div class="empty-icon">⏳</div><div class="empty-title">Loading schedule...</div></div></div>
+  </div>
+
+  <!-- ─────────── MEDICINES ─────────── -->
+  <div class="page-view" id="medicinesPage">
+    <div class="page-header">
+      <div><div class="page-title">My Medicines 💊</div><div class="page-subtitle">Manage your medication list</div></div>
+      <button class="btn btn-primary" onclick="openAddMed()">+ Add Medicine</button>
+    </div>
+    <div class="meds-grid" id="medsGrid"><div class="empty-state"><div class="empty-icon">💊</div><div class="empty-title">No medicines yet</div><div class="empty-desc">Click "Add Medicine" to get started</div></div></div>
+  </div>
+
+  <!-- ─────────── HISTORY ─────────── -->
+  <div class="page-view" id="historyPage">
+    <div class="page-header">
+      <div><div class="page-title">History & Logs 📊</div><div class="page-subtitle">Your medication history (last 7 days)</div></div>
+      <select id="logDaysFilter" onchange="loadLogs()" style="background:var(--glass);border:1px solid var(--glass-border);color:var(--text);border-radius:10px;padding:8px 14px;font-family:var(--font-b);outline:none;">
+        <option value="7">Last 7 days</option><option value="14">Last 14 days</option><option value="30">Last 30 days</option>
+      </select>
+    </div>
+    <div class="log-list" id="logList"><div class="empty-state"><div class="empty-icon">📊</div><div class="empty-title">No logs yet</div></div></div>
+  </div>
+
+  <!-- ─────────── NOTES ─────────── -->
+  <div class="page-view" id="notesPage">
+    <div class="page-header">
+      <div><div class="page-title">Health Diary 📓</div><div class="page-subtitle">Track how you feel each day</div></div>
+      <button class="btn btn-primary" onclick="openAddNote()">+ Add Note</button>
+    </div>
+    <div class="notes-grid" id="notesGrid"><div class="empty-state"><div class="empty-icon">📓</div><div class="empty-title">No notes yet</div><div class="empty-desc">Start journaling your health journey</div></div></div>
+  </div>
+
+  <!-- ─────────── PROFILE ─────────── -->
+  <div class="page-view" id="profilePage">
+    <div class="page-header"><div class="page-title">Profile 👤</div></div>
+    <div style="max-width:560px">
+      <div class="card" style="margin-bottom:20px">
+        <div class="profile-avatar-wrap">
+          <div class="avatar profile-avatar" id="profileAvatar" style="background:var(--teal)">?</div>
+          <div><div style="font-family:var(--font-d);font-size:1.2rem;font-weight:700" id="profileName">-</div><div style="font-size:0.85rem;color:var(--muted)" id="profileEmail">-</div><div style="font-size:0.75rem;color:var(--muted);margin-top:4px" id="profileJoined">-</div></div>
+        </div>
+        <div class="form-row">
+          <div class="field"><label>Full Name</label><input type="text" id="pName" placeholder="Your name"></div>
+          <div class="field"><label>Phone</label><input type="tel" id="pPhone" placeholder="+91 ..."></div>
+        </div>
+        <div class="form-row">
+          <div class="field"><label>Date of Birth</label><input type="date" id="pDob"></div>
+          <div class="field"><label>Gender</label><select id="pGender"><option value="">Select</option><option value="male">Male</option><option value="female">Female</option><option value="other">Other</option></select></div>
+        </div>
+        <button class="btn btn-primary" onclick="updateProfile()">Save Changes</button>
+      </div>
+      <div class="card">
+        <div style="font-family:var(--font-d);font-weight:700;margin-bottom:16px">Change Password 🔐</div>
+        <div class="field"><label>Current Password</label><input type="password" id="pCurrPass" placeholder="Current password"></div>
+        <div class="field"><label>New Password</label><input type="password" id="pNewPass" placeholder="Min 6 characters"></div>
+        <button class="btn btn-ghost" onclick="changePassword()">Update Password</button>
+      </div>
+    </div>
+  </div>
+</main>
+</div>
+
+<!-- ── Add/Edit Medicine Modal ── -->
+<div class="modal-overlay" id="medModal">
+  <div class="modal">
+    <div class="modal-title" id="medModalTitle">Add Medicine</div>
+    <input type="hidden" id="medId">
+    <div class="form-row">
+      <div class="field"><label>Medicine Name *</label><input type="text" id="medName" placeholder="e.g. Paracetamol"></div>
+      <div class="field"><label>Dosage *</label><input type="text" id="medDose" placeholder="e.g. 500mg"></div>
+    </div>
+    <div class="form-row">
+      <div class="field"><label>Type</label><select id="medType"><option value="tablet">💊 Tablet</option><option value="capsule">💉 Capsule</option><option value="syrup">🍯 Syrup</option><option value="injection">💉 Injection</option><option value="drops">💧 Drops</option><option value="inhaler">🫁 Inhaler</option><option value="cream">🧴 Cream</option><option value="other">🔵 Other</option></select></div>
+      <div class="field"><label>Frequency *</label><select id="medFreq" onchange="updateTimeSuggestions()"><option value="once_daily">Once Daily</option><option value="twice_daily">Twice Daily</option><option value="thrice_daily">Thrice Daily</option><option value="every_8h">Every 8 Hours</option><option value="every_6h">Every 6 Hours</option><option value="every_4h">Every 4 Hours</option><option value="weekly">Weekly</option><option value="custom">Custom</option></select></div>
+    </div>
+    <div class="field">
+      <label>Reminder Times *</label>
+      <div style="display:flex;gap:8px;margin-bottom:8px">
+        <input type="time" id="medTimeInput" style="flex:1">
+        <button class="btn btn-ghost btn-sm" onclick="addTime()">+ Add</button>
+      </div>
+      <div class="time-chips" id="timeChips"></div>
+    </div>
+    <div class="form-row">
+      <div class="field"><label>Start Date *</label><input type="date" id="medStart"></div>
+      <div class="field"><label>End Date (optional)</label><input type="date" id="medEnd"></div>
+    </div>
+    <div class="field"><label>Instructions</label><textarea id="medInstructions" rows="2" placeholder="e.g. Take after food"></textarea></div>
+    <div class="field">
+      <label>Color Tag</label>
+      <div class="color-row" id="colorPicker"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeMedModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveMedicine()">💾 Save Medicine</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Add Note Modal ── -->
+<div class="modal-overlay" id="noteModal">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-title">Add Health Note 📓</div>
+    <div class="field">
+      <label>How are you feeling today?</label>
+      <div style="display:flex;gap:10px;margin-bottom:12px">
+        <button class="mood-btn" data-mood="great" onclick="selectMood('great')">😄 Great</button>
+        <button class="mood-btn" data-mood="good" onclick="selectMood('good')">🙂 Good</button>
+        <button class="mood-btn" data-mood="okay" onclick="selectMood('okay')">😐 Okay</button>
+        <button class="mood-btn" data-mood="bad" onclick="selectMood('bad')">😔 Bad</button>
+      </div>
+    </div>
+    <div class="field"><label>Note</label><textarea id="noteText" rows="4" placeholder="Write about your health today..."></textarea></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeNoteModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveNote()">Save Note</button>
+    </div>
+  </div>
+</div>
+
+<style>
+.mood-btn { padding: 6px 10px; border-radius: 8px; border: 1px solid var(--glass-border); background: var(--glass); color: var(--text2); cursor: pointer; font-size: 0.78rem; transition: all 0.15s; }
+.mood-btn.selected { background: rgba(78,205,196,0.2); border-color: var(--teal); color: var(--teal); }
+</style>
+
+<script>
+// ── State ──────────────────────────────────────────────────
+let currentUser = null;
+let currentPage = 'dashboard';
+let medTimes = [];
+let selectedColor = '#4ecdc4';
+let selectedMood = 'okay';
+const medColors = ['#4ecdc4','#ff6b6b','#45b7d1','#96ceb4','#feca57','#ff9ff3','#54a0ff','#5f27cd','#ff9f43','#1dd1a1'];
+const medTypeIcons = { tablet:'💊', capsule:'💉', syrup:'🍯', injection:'💉', drops:'💧', inhaler:'🫁', cream:'🧴', other:'🔵' };
+
+// ── Init ───────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', async () => {
+  setGreeting();
+  document.getElementById('topDate').textContent = new Date().toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+  await checkAuth();
+  buildColorPicker();
+  startClockUpdate();
+});
+
+async function checkAuth() {
+  try {
+    const r = await fetch('auth.php?action=check');
+    const d = await r.json();
+    if (!d.loggedIn) { window.location.href='index.html'; return; }
+    currentUser = d.user;
+    updateUserUI();
+    loadAll();
+  } catch(e) { showToast('Server error — check PHP/MySQL setup','error'); }
+}
+
+function updateUserUI() {
+  const u = currentUser;
+  const initials = u.full_name.split(' ').map(n=>n[0]).join('').toUpperCase().slice(0,2);
+  ['sideAvatar','profileAvatar'].forEach(id => {
+    const el = document.getElementById(id);
+    el.textContent = initials; el.style.background = u.avatar_color;
+  });
+  document.getElementById('sideName').textContent = u.full_name;
+  document.getElementById('sideEmail').textContent = u.email;
+  document.getElementById('profileName').textContent = u.full_name;
+  document.getElementById('profileEmail').textContent = u.email;
+  document.getElementById('profileJoined').textContent = 'Member since ' + new Date(u.created_at).toLocaleDateString('en-US',{month:'long',year:'numeric'});
+  document.getElementById('pName').value   = u.full_name || '';
+  document.getElementById('pPhone').value  = u.phone || '';
+  document.getElementById('pDob').value    = u.date_of_birth || '';
+  document.getElementById('pGender').value = u.gender || '';
+  document.getElementById('dashSubtitle').textContent = `Welcome back, ${u.full_name.split(' ')[0]}!`;
+}
+
+function loadAll() { loadStats(); loadTodaySchedule(); loadMedicines(); loadLogs(); loadNotes(); }
+
+// ── Navigation ─────────────────────────────────────────────
+function showPage(page) {
+  currentPage = page;
+  document.querySelectorAll('.page-view').forEach(v=>v.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById(page+'Page').classList.add('active');
+  const pages = ['dashboard','today','medicines','history','notes','profile'];
+  document.querySelectorAll('.nav-item')[pages.indexOf(page)]?.classList.add('active');
+  closeSidebar();
+}
+
+// ── Stats ──────────────────────────────────────────────────
+async function loadStats() {
+  try {
+    const r = await fetch('medicines.php?action=stats');
+    const d = await r.json();
+    document.getElementById('statMeds').textContent   = d.total_medicines;
+    document.getElementById('statAdherence').textContent = d.adherence + '%';
+    document.getElementById('statStreak').textContent  = d.streak + ' 🔥';
+    // Adherence ring
+    const pct = d.adherence;
+    document.getElementById('adherencePct').textContent = pct + '%';
+    document.getElementById('adherenceRing').style.strokeDashoffset = 283 - (283 * pct / 100);
+    const total = d.logs_summary.taken + d.logs_summary.skipped + d.logs_summary.missed;
+    const pctOf = n => total>0 ? Math.round(n/total*100) : 0;
+    document.getElementById('takenBar').style.width   = pctOf(d.logs_summary.taken)+'%';
+    document.getElementById('skippedBar').style.width = pctOf(d.logs_summary.skipped)+'%';
+    document.getElementById('missedBar').style.width  = pctOf(d.logs_summary.missed)+'%';
+    document.getElementById('takenCount').textContent   = d.logs_summary.taken + ' doses';
+    document.getElementById('skippedCount').textContent = d.logs_summary.skipped + ' doses';
+    document.getElementById('missedCount').textContent  = d.logs_summary.missed + ' doses';
+  } catch(e) {}
+}
+
+// ── Today's schedule ───────────────────────────────────────
+async function loadTodaySchedule() {
+  try {
+    const r = await fetch('medicines.php?action=today');
+    const d = await r.json();
+    document.getElementById('todayDate').textContent = 'Schedule for ' + new Date(d.date+'T00:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
+    const now = new Date();
+    const pending = d.schedule.filter(s=>s.status==='pending');
+    document.getElementById('statToday').textContent = d.schedule.length;
+    const badge = document.getElementById('pendingBadge');
+    if (pending.length > 0) { badge.textContent = pending.length; badge.style.display='inline'; }
+    else badge.style.display = 'none';
+    // Dashboard preview (next 3)
+    const upcoming = d.schedule.filter(s=>s.status==='pending').slice(0,3);
+    renderSchedule('dashSchedule', upcoming.length ? upcoming : d.schedule.slice(0,3), true);
+    // Full today page
+    renderSchedule('todaySchedule', d.schedule, false);
+  } catch(e) {}
+}
+
+function renderSchedule(containerId, schedule, compact) {
+  const wrap = document.getElementById(containerId);
+  if (!schedule.length) {
+    wrap.innerHTML = `<div class="empty-state"><div class="empty-icon">✅</div><div class="empty-title">All done for today!</div><div class="empty-desc">Great job staying on track</div></div>`;
+    return;
+  }
+  wrap.innerHTML = schedule.map(s => {
+    const statusClass = 'status-'+s.status;
+    const statusLabel = {pending:'⏰ Pending',taken:'✅ Taken',skipped:'⏭ Skipped',missed:'❌ Missed'}[s.status]||s.status;
+    const actions = s.status==='pending' ? `<div class="dose-actions"><button class="dose-btn take-btn" onclick="logDose(${s.medicine_id},'${s.scheduled_time}','taken')">✓ Take</button><button class="dose-btn skip-btn" onclick="logDose(${s.medicine_id},'${s.scheduled_time}','skipped')">Skip</button></div>` : '';
+    return `<div class="dose-item" id="dose-${s.medicine_id}-${s.scheduled_time.replace(/[: ]/g,'-')}">
+      <div class="dose-time">${formatTime(s.time)}</div>
+      <div class="dose-dot" style="background:${s.color}"></div>
+      <div class="dose-info">
+        <div class="dose-name">${s.medicine_name}</div>
+        <div class="dose-meta">${s.dosage} · ${s.medicine_type}${s.instructions?` · ${s.instructions}`:''}</div>
+      </div>
+      <span class="dose-status ${statusClass}">${statusLabel}</span>
+      ${actions}
+    </div>`;
+  }).join('');
+}
+
+async function logDose(medId, scheduledTime, status) {
+  try {
+    const r = await fetch('medicines.php?action=log', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({medicine_id:medId, scheduled_time:scheduledTime, status})
+    });
+    const d = await r.json();
+    if (d.success) {
+      showToast(status==='taken'?'✅ Dose marked as taken!':'⏭ Dose skipped', status==='taken'?'success':'error');
+      loadTodaySchedule(); loadStats();
+    }
+  } catch(e) { showToast('Error logging dose','error'); }
+}
+
+// ── Medicines ──────────────────────────────────────────────
+async function loadMedicines() {
+  try {
+    const r = await fetch('medicines.php?action=list');
+    const d = await r.json();
+    const grid = document.getElementById('medsGrid');
+    if (!d.medicines.length) {
+      grid.innerHTML = `<div class="empty-state"><div class="empty-icon">💊</div><div class="empty-title">No medicines added</div><div class="empty-desc">Click "Add Medicine" to get started</div></div>`;
+      return;
+    }
+    grid.innerHTML = d.medicines.map(m => `
+      <div class="med-card ${m.is_active?'':'med-inactive'}" style="--med-color:${m.color}">
+        <div class="med-card-header">
+          <div class="med-icon">${medTypeIcons[m.medicine_type]||'💊'}</div>
+          <div class="med-actions">
+            <button class="med-action-btn" onclick="toggleMed(${m.id})" title="${m.is_active?'Deactivate':'Activate'}">${m.is_active?'⏸':'▶'}</button>
+            <button class="med-action-btn" onclick="openEditMed(${m.id})" title="Edit">✏️</button>
+            <button class="med-action-btn" onclick="deleteMed(${m.id})" title="Delete" style="color:var(--coral)">🗑</button>
+          </div>
+        </div>
+        <div class="med-name">${m.name}</div>
+        <div class="med-dose">${m.dosage}</div>
+        <div class="med-tags">
+          <span class="tag">${formatFreq(m.frequency)}</span>
+          ${m.times.map(t=>`<span class="tag">⏰ ${formatTime(t)}</span>`).join('')}
+          ${m.end_date?`<span class="tag">Until ${new Date(m.end_date+'T00:00').toLocaleDateString()}</span>`:''}
+          ${!m.is_active?'<span class="tag" style="color:var(--coral)">Inactive</span>':''}
+        </div>
+        ${m.instructions?`<div style="font-size:0.75rem;color:var(--muted);margin-top:8px;font-style:italic">📝 ${m.instructions}</div>`:''}
+      </div>`).join('');
+  } catch(e) {}
+}
+
+// ── Medicine Modal ─────────────────────────────────────────
+function buildColorPicker() {
+  const cp = document.getElementById('colorPicker');
+  cp.innerHTML = medColors.map(c=>`<div class="color-dot ${c===selectedColor?'selected':''}" style="background:${c}" onclick="pickColor('${c}')"></div>`).join('');
+}
+function pickColor(c) { selectedColor=c; buildColorPicker(); }
+
+function openAddMed() {
+  document.getElementById('medModalTitle').textContent = 'Add Medicine';
+  document.getElementById('medId').value = '';
+  document.getElementById('medName').value = '';
+  document.getElementById('medDose').value = '';
+  document.getElementById('medType').value = 'tablet';
+  document.getElementById('medFreq').value = 'once_daily';
+  document.getElementById('medStart').value = new Date().toISOString().split('T')[0];
+  document.getElementById('medEnd').value = '';
+  document.getElementById('medInstructions').value = '';
+  medTimes = ['08:00']; renderTimeChips();
+  selectedColor = medColors[Math.floor(Math.random()*medColors.length)];
+  buildColorPicker();
+  document.getElementById('medModal').classList.add('show');
+}
+
+async function openEditMed(id) {
+  try {
+    const r = await fetch('medicines.php?action=list');
+    const d = await r.json();
+    const m = d.medicines.find(x=>x.id===id);
+    if (!m) return;
+    document.getElementById('medModalTitle').textContent = 'Edit Medicine';
+    document.getElementById('medId').value = m.id;
+    document.getElementById('medName').value = m.name;
+    document.getElementById('medDose').value = m.dosage;
+    document.getElementById('medType').value = m.medicine_type;
+    document.getElementById('medFreq').value = m.frequency;
+    document.getElementById('medStart').value = m.start_date;
+    document.getElementById('medEnd').value = m.end_date||'';
+    document.getElementById('medInstructions').value = m.instructions||'';
+    medTimes = [...m.times]; renderTimeChips();
+    selectedColor = m.color; buildColorPicker();
+    document.getElementById('medModal').classList.add('show');
+  } catch(e) {}
+}
+
+function closeMedModal() { document.getElementById('medModal').classList.remove('show'); }
+
+function addTime() {
+  const t = document.getElementById('medTimeInput').value;
+  if (!t) return;
+  if (!medTimes.includes(t)) { medTimes.push(t); medTimes.sort(); }
+  renderTimeChips();
+  document.getElementById('medTimeInput').value = '';
+}
+
+function removeTime(t) { medTimes = medTimes.filter(x=>x!==t); renderTimeChips(); }
+
+function renderTimeChips() {
+  document.getElementById('timeChips').innerHTML = medTimes.map(t=>
+    `<div class="time-chip">${formatTime(t)}<span class="del" onclick="removeTime('${t}')">✕</span></div>`
+  ).join('');
+}
+
+function updateTimeSuggestions() {
+  const freq = document.getElementById('medFreq').value;
+  const presets = { once_daily:['08:00'], twice_daily:['08:00','20:00'], thrice_daily:['08:00','14:00','20:00'], every_8h:['06:00','14:00','22:00'], every_6h:['06:00','12:00','18:00','00:00'], every_4h:['06:00','10:00','14:00','18:00','22:00'], weekly:['08:00'] };
+  if (presets[freq]) { medTimes = presets[freq]; renderTimeChips(); }
+}
+
+async function saveMedicine() {
+  const id   = document.getElementById('medId').value;
+  const name = document.getElementById('medName').value.trim();
+  const dose = document.getElementById('medDose').value.trim();
+  if (!name || !dose || !medTimes.length) return showToast('Name, dosage and at least one time required','error');
+  const payload = {
+    id: id||undefined, name, dosage:dose,
+    medicine_type: document.getElementById('medType').value,
+    frequency: document.getElementById('medFreq').value,
+    times: medTimes,
+    start_date: document.getElementById('medStart').value,
+    end_date: document.getElementById('medEnd').value||null,
+    instructions: document.getElementById('medInstructions').value,
+    color: selectedColor
+  };
+  try {
+    const action = id ? 'update' : 'add';
+    const r = await fetch('medicines.php?action='+action, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) });
+    const d = await r.json();
+    if (d.success) { showToast(d.message,'success'); closeMedModal(); loadMedicines(); loadTodaySchedule(); loadStats(); }
+    else showToast(d.error||'Error saving','error');
+  } catch(e) { showToast('Server error','error'); }
+}
+
+async function deleteMed(id) {
+  if (!confirm('Delete this medicine? All its logs will also be removed.')) return;
+  try {
+    const r = await fetch('medicines.php?action=delete&id='+id, {method:'POST'});
+    const d = await r.json();
+    if (d.success) { showToast('Medicine deleted','success'); loadMedicines(); loadStats(); }
+  } catch(e) {}
+}
+
+async function toggleMed(id) {
+  try {
+    await fetch('medicines.php?action=toggle', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id})});
+    loadMedicines(); loadStats(); loadTodaySchedule();
+  } catch(e) {}
+}
+
+// ── Logs ──────────────────────────────────────────────────
+async function loadLogs() {
+  const days = document.getElementById('logDaysFilter')?.value || 7;
+  try {
+    const r = await fetch(`medicines.php?action=logs&days=${days}`);
+    const d = await r.json();
+    const list = document.getElementById('logList');
+    if (!d.logs.length) { list.innerHTML = `<div class="empty-state"><div class="empty-icon">📊</div><div class="empty-title">No logs yet</div><div class="empty-desc">Start taking your medicines and logs will appear here</div></div>`; return; }
+    const statusColors = {taken:'var(--teal)',skipped:'var(--gold)',missed:'var(--coral)'};
+    list.innerHTML = d.logs.map(l=>`
+      <div class="log-item">
+        <div class="log-dot" style="background:${l.color}"></div>
+        <div class="log-info">
+          <div class="log-name">${l.medicine_name}</div>
+          <div class="log-time">${new Date(l.scheduled_time).toLocaleString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})}</div>
+        </div>
+        <span class="log-status-badge" style="background:${statusColors[l.status]}20;color:${statusColors[l.status]};border:1px solid ${statusColors[l.status]}40">
+          ${{taken:'✅ Taken',skipped:'⏭ Skipped',missed:'❌ Missed'}[l.status]}
+        </span>
+      </div>`).join('');
+  } catch(e) {}
+}
+
+// ── Notes ─────────────────────────────────────────────────
+async function loadNotes() {
+  try {
+    const r = await fetch('medicines.php?action=notes');
+    const d = await r.json();
+    const grid = document.getElementById('notesGrid');
+    const moodEmoji = {great:'😄',good:'🙂',okay:'😐',bad:'😔',terrible:'😢'};
+    if (!d.notes.length) { grid.innerHTML = `<div class="empty-state"><div class="empty-icon">📓</div><div class="empty-title">No notes yet</div><div class="empty-desc">Start tracking how you feel each day</div></div>`; return; }
+    grid.innerHTML = d.notes.map(n=>`
+      <div class="note-card">
+        <div class="note-mood">${moodEmoji[n.mood]||'😐'} <span style="font-size:0.78rem;color:var(--muted);text-transform:capitalize">${n.mood}</span></div>
+        <div class="note-text">${n.note}</div>
+        <div class="note-date">${new Date(n.created_at).toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})}</div>
+      </div>`).join('');
+  } catch(e) {}
+}
+
+function openAddNote() { selectedMood='okay'; document.getElementById('noteText').value=''; document.querySelectorAll('.mood-btn').forEach(b=>{b.classList.toggle('selected',b.dataset.mood==='okay')}); document.getElementById('noteModal').classList.add('show'); }
+function closeNoteModal() { document.getElementById('noteModal').classList.remove('show'); }
+function selectMood(m) { selectedMood=m; document.querySelectorAll('.mood-btn').forEach(b=>b.classList.toggle('selected',b.dataset.mood===m)); }
+
+async function saveNote() {
+  const note = document.getElementById('noteText').value.trim();
+  if (!note) return showToast('Please write something','error');
+  try {
+    const r = await fetch('medicines.php?action=note_add', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({note,mood:selectedMood})});
+    const d = await r.json();
+    if (d.success) { showToast('Note saved! 📓','success'); closeNoteModal(); loadNotes(); }
+  } catch(e) {}
+}
+
+// ── Profile ────────────────────────────────────────────────
+async function updateProfile() {
+  const payload = { full_name:document.getElementById('pName').value.trim(), phone:document.getElementById('pPhone').value, date_of_birth:document.getElementById('pDob').value, gender:document.getElementById('pGender').value };
+  if (!payload.full_name) return showToast('Name is required','error');
+  try {
+    const r = await fetch('auth.php?action=profile',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    const d = await r.json();
+    if (d.success) { showToast('Profile updated ✅','success'); currentUser.full_name=payload.full_name; updateUserUI(); }
+    else showToast(d.error||'Error','error');
+  } catch(e) {}
+}
+
+async function changePassword() {
+  const payload = { current_password:document.getElementById('pCurrPass').value, new_password:document.getElementById('pNewPass').value, full_name:currentUser.full_name };
+  if (!payload.current_password||!payload.new_password) return showToast('Fill both password fields','error');
+  try {
+    const r = await fetch('auth.php?action=profile',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    const d = await r.json();
+    if (d.success) { showToast('Password changed ✅','success'); document.getElementById('pCurrPass').value=''; document.getElementById('pNewPass').value=''; }
+    else showToast(d.error||'Error','error');
+  } catch(e) {}
+}
+
+// ── Auth ───────────────────────────────────────────────────
+async function logout() {
+  await fetch('auth.php?action=logout');
+  window.location.href = 'index.html';
+}
+
+// ── Helpers ────────────────────────────────────────────────
+function setGreeting() {
+  const h = new Date().getHours();
+  const g = h<12?'Morning':h<17?'Afternoon':'Evening';
+  document.getElementById('greeting').textContent = g;
+}
+
+function formatTime(t) {
+  if (!t) return '';
+  const [hh,mm] = t.split(':');
+  const h = parseInt(hh), ampm = h>=12?'PM':'AM';
+  return `${h%12||12}:${mm} ${ampm}`;
+}
+
+function formatFreq(f) {
+  const map = {once_daily:'1x Daily',twice_daily:'2x Daily',thrice_daily:'3x Daily',every_8h:'Every 8h',every_6h:'Every 6h',every_4h:'Every 4h',weekly:'Weekly',custom:'Custom'};
+  return map[f]||f;
+}
+
+function showToast(msg, type='success') {
+  const wrap = document.getElementById('toastWrap');
+  const el = document.createElement('div');
+  el.className = `toast ${type}`; el.textContent = msg;
+  wrap.appendChild(el);
+  setTimeout(()=>el.remove(), 3200);
+}
+
+function openSidebar() { document.getElementById('sidebar').classList.add('open'); document.getElementById('backdrop').classList.add('show'); }
+function closeSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('backdrop').classList.remove('show'); }
+
+function startClockUpdate() {
+  setInterval(() => {
+    document.getElementById('topDate').textContent = new Date().toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+  }, 60000);
+}
+
+// Close modals on overlay click
+document.getElementById('medModal').addEventListener('click', e=>{ if(e.target===e.currentTarget) closeMedModal(); });
+document.getElementById('noteModal').addEventListener('click', e=>{ if(e.target===e.currentTarget) closeNoteModal(); });
+</script>
+</body>
+</html>

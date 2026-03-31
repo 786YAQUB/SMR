@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MediCare — Smart Medicine Reminder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --teal: #4ecdc4;
+    --coral: #ff6b6b;
+    --navy: #0d1b2a;
+    --navy2: #1a2e44;
+    --navy3: #243447;
+    --glass: rgba(255,255,255,0.06);
+    --glass-border: rgba(255,255,255,0.12);
+    --text: #e8f4f8;
+    --muted: #7fa8bc;
+    --radius: 16px;
+    --font-display: 'Syne', sans-serif;
+    --font-body: 'DM Sans', sans-serif;
+  }
+
+  html, body {
+    height: 100%;
+    background: var(--navy);
+    color: var(--text);
+    font-family: var(--font-body);
+    overflow-x: hidden;
+  }
+
+  /* ── Background orbs ── */
+  .bg-orbs {
+    position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    overflow: hidden;
+  }
+  .orb {
+    position: absolute; border-radius: 50%;
+    filter: blur(80px); opacity: 0.18;
+    animation: float 12s ease-in-out infinite alternate;
+  }
+  .orb1 { width: 500px; height: 500px; background: var(--teal); top: -150px; left: -100px; animation-delay: 0s; }
+  .orb2 { width: 400px; height: 400px; background: var(--coral); bottom: -100px; right: -80px; animation-delay: -5s; }
+  .orb3 { width: 300px; height: 300px; background: #5f27cd; top: 40%; left: 60%; animation-delay: -3s; }
+  @keyframes float { from { transform: translateY(0) scale(1); } to { transform: translateY(-40px) scale(1.08); } }
+
+  /* ── Layout ── */
+  .page {
+    min-height: 100vh; display: flex;
+    position: relative; z-index: 1;
+  }
+
+  /* Left brand panel */
+  .brand-panel {
+    width: 42%; padding: 60px 50px;
+    display: flex; flex-direction: column; justify-content: center;
+    background: linear-gradient(145deg, rgba(78,205,196,0.12), rgba(13,27,42,0));
+    border-right: 1px solid var(--glass-border);
+  }
+  @media(max-width: 800px) { .brand-panel { display: none; } }
+
+  .logo {
+    font-family: var(--font-display);
+    font-size: 2.8rem; font-weight: 800;
+    line-height: 1;
+    background: linear-gradient(135deg, var(--teal), #45b7d1);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    margin-bottom: 8px;
+  }
+  .logo-tagline { font-size: 0.95rem; color: var(--muted); margin-bottom: 56px; }
+
+  .feature-list { list-style: none; display: flex; flex-direction: column; gap: 24px; }
+  .feature-item { display: flex; align-items: flex-start; gap: 16px; }
+  .feat-icon {
+    width: 44px; height: 44px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.4rem; flex-shrink: 0;
+  }
+  .feat-title { font-family: var(--font-display); font-weight: 600; font-size: 0.95rem; margin-bottom: 3px; }
+  .feat-desc  { font-size: 0.83rem; color: var(--muted); line-height: 1.5; }
+
+  /* Right auth panel */
+  .auth-panel {
+    flex: 1; display: flex; align-items: center; justify-content: center;
+    padding: 40px 24px;
+  }
+
+  .auth-box {
+    width: 100%; max-width: 430px;
+    background: var(--glass);
+    border: 1px solid var(--glass-border);
+    border-radius: 24px;
+    padding: 44px 40px;
+    backdrop-filter: blur(20px);
+    animation: slideUp 0.5s ease;
+  }
+  @keyframes slideUp { from { opacity:0; transform: translateY(24px); } to { opacity:1; transform: translateY(0); } }
+
+  .auth-tabs {
+    display: flex; background: rgba(255,255,255,0.05);
+    border-radius: 12px; padding: 4px; margin-bottom: 32px;
+  }
+  .auth-tab {
+    flex: 1; padding: 10px; text-align: center;
+    font-family: var(--font-display); font-weight: 600;
+    font-size: 0.9rem; cursor: pointer;
+    border-radius: 9px; color: var(--muted);
+    transition: all 0.25s ease; border: none; background: none; color: var(--muted);
+  }
+  .auth-tab.active {
+    background: linear-gradient(135deg, var(--teal), #45b7d1);
+    color: var(--navy); box-shadow: 0 4px 16px rgba(78,205,196,0.35);
+  }
+
+  .auth-heading { font-family: var(--font-display); font-size: 1.5rem; font-weight: 700; margin-bottom: 6px; }
+  .auth-sub { font-size: 0.85rem; color: var(--muted); margin-bottom: 28px; }
+
+  /* Form */
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .field { margin-bottom: 16px; }
+  label { display: block; font-size: 0.8rem; font-weight: 500; color: var(--muted); margin-bottom: 6px; letter-spacing: 0.5px; text-transform: uppercase; }
+  input, select {
+    width: 100%; padding: 12px 14px;
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 10px; color: var(--text);
+    font-family: var(--font-body); font-size: 0.9rem;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    outline: none;
+  }
+  input::placeholder { color: rgba(255,255,255,0.25); }
+  input:focus, select:focus {
+    border-color: var(--teal);
+    box-shadow: 0 0 0 3px rgba(78,205,196,0.15);
+  }
+  select option { background: var(--navy2); }
+
+  .input-icon { position: relative; }
+  .input-icon .icon {
+    position: absolute; left: 13px; top: 50%; transform: translateY(-50%);
+    font-size: 1rem; pointer-events: none;
+  }
+  .input-icon input { padding-left: 38px; }
+
+  .btn {
+    width: 100%; padding: 14px;
+    background: linear-gradient(135deg, var(--teal), #45b7d1);
+    color: var(--navy); border: none; border-radius: 12px;
+    font-family: var(--font-display); font-weight: 700;
+    font-size: 0.95rem; cursor: pointer; letter-spacing: 0.3px;
+    transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    margin-top: 8px;
+  }
+  .btn:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(78,205,196,0.4); }
+  .btn:active { transform: translateY(0); }
+  .btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+  .btn-spinner { display: none; width: 16px; height: 16px; border: 2px solid rgba(13,27,42,0.3); border-top-color: var(--navy); border-radius: 50%; animation: spin 0.6s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .divider { text-align: center; color: var(--muted); font-size: 0.8rem; margin: 20px 0; position: relative; }
+  .divider::before, .divider::after { content:''; position: absolute; top: 50%; width: 40%; height: 1px; background: var(--glass-border); }
+  .divider::before { left: 0; } .divider::after { right: 0; }
+
+  .alert {
+    padding: 12px 14px; border-radius: 10px; font-size: 0.85rem;
+    margin-bottom: 16px; display: none; align-items: center; gap: 8px;
+  }
+  .alert.error  { background: rgba(255,107,107,0.15); border: 1px solid rgba(255,107,107,0.3); color: #ff9898; }
+  .alert.success{ background: rgba(78,205,196,0.15); border: 1px solid rgba(78,205,196,0.3); color: var(--teal); }
+  .alert.show   { display: flex; }
+
+  /* Form panels */
+  .form-panel { display: none; }
+  .form-panel.active { display: block; }
+
+  /* Scroll for register form */
+  .auth-box { max-height: 90vh; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--glass-border) transparent; }
+
+  /* Mobile logo */
+  .mobile-logo {
+    display: none; text-align: center; margin-bottom: 24px;
+    font-family: var(--font-display); font-size: 2rem; font-weight: 800;
+    background: linear-gradient(135deg, var(--teal), #45b7d1);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  @media(max-width: 800px) { .mobile-logo { display: block; } }
+</style>
+</head>
+<body>
+<div class="bg-orbs">
+  <div class="orb orb1"></div>
+  <div class="orb orb2"></div>
+  <div class="orb orb3"></div>
+</div>
+
+<div class="page">
+  <!-- Brand panel -->
+  <aside class="brand-panel">
+    <div class="logo">💊 MediCare</div>
+    <p class="logo-tagline">Your Smart Medicine Companion</p>
+    <ul class="feature-list">
+      <li class="feature-item">
+        <div class="feat-icon" style="background:rgba(78,205,196,0.15)">⏰</div>
+        <div><div class="feat-title">Smart Reminders</div><div class="feat-desc">Never miss a dose again with personalized daily schedules and smart notifications.</div></div>
+      </li>
+      <li class="feature-item">
+        <div class="feat-icon" style="background:rgba(255,107,107,0.15)">📊</div>
+        <div><div class="feat-title">Adherence Tracking</div><div class="feat-desc">Track your medication history, streaks, and adherence rate over time.</div></div>
+      </li>
+      <li class="feature-item">
+        <div class="feat-icon" style="background:rgba(95,39,205,0.15)">💬</div>
+        <div><div class="feat-title">Health Diary</div><div class="feat-desc">Log your mood and health notes alongside your medication schedule.</div></div>
+      </li>
+      <li class="feature-item">
+        <div class="feat-icon" style="background:rgba(254,202,87,0.15)">🔔</div>
+        <div><div class="feat-title">Multiple Medicines</div><div class="feat-desc">Manage tablets, syrups, injections and more — all in one place.</div></div>
+      </li>
+    </ul>
+  </aside>
+
+  <!-- Auth panel -->
+  <main class="auth-panel">
+    <div class="auth-box">
+      <div class="mobile-logo">💊 MediCare</div>
+
+      <div class="auth-tabs">
+        <button class="auth-tab active" onclick="switchTab('login')">Sign In</button>
+        <button class="auth-tab" onclick="switchTab('register')">Register</button>
+      </div>
+
+      <div id="alert" class="alert"></div>
+
+      <!-- LOGIN FORM -->
+      <div id="loginPanel" class="form-panel active">
+        <h2 class="auth-heading">Welcome back 👋</h2>
+        <p class="auth-sub">Sign in to your MediCare account</p>
+        <div class="field input-icon">
+          <label>Email Address</label>
+          <span class="icon">📧</span>
+          <input type="email" id="loginEmail" placeholder="you@example.com" autocomplete="email">
+        </div>
+        <div class="field input-icon">
+          <label>Password</label>
+          <span class="icon">🔒</span>
+          <input type="password" id="loginPass" placeholder="Your password" autocomplete="current-password">
+        </div>
+        <button class="btn" id="loginBtn" onclick="handleLogin()">
+          <span class="btn-spinner" id="loginSpinner"></span>
+          <span id="loginBtnText">Sign In →</span>
+        </button>
+        <div class="divider">or</div>
+        <p style="text-align:center;font-size:0.85rem;color:var(--muted)">
+          Don't have an account? <a onclick="switchTab('register')" style="color:var(--teal);cursor:pointer;font-weight:500">Create one</a>
+        </p>
+      </div>
+
+      <!-- REGISTER FORM -->
+      <div id="registerPanel" class="form-panel">
+        <h2 class="auth-heading">Create account ✨</h2>
+        <p class="auth-sub">Join MediCare — it's free forever</p>
+        <div class="form-row">
+          <div class="field">
+            <label>Full Name</label>
+            <input type="text" id="regName" placeholder="John Doe">
+          </div>
+          <div class="field">
+            <label>Phone</label>
+            <input type="tel" id="regPhone" placeholder="+91 98765...">
+          </div>
+        </div>
+        <div class="field input-icon">
+          <label>Email Address</label>
+          <span class="icon">📧</span>
+          <input type="email" id="regEmail" placeholder="you@example.com">
+        </div>
+        <div class="field input-icon">
+          <label>Password</label>
+          <span class="icon">🔒</span>
+          <input type="password" id="regPass" placeholder="Min 6 characters">
+        </div>
+        <div class="form-row">
+          <div class="field">
+            <label>Date of Birth</label>
+            <input type="date" id="regDob">
+          </div>
+          <div class="field">
+            <label>Gender</label>
+            <select id="regGender">
+              <option value="">Select</option>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn" id="regBtn" onclick="handleRegister()">
+          <span class="btn-spinner" id="regSpinner"></span>
+          <span id="regBtnText">Create Account →</span>
+        </button>
+        <p style="text-align:center;font-size:0.85rem;color:var(--muted);margin-top:16px">
+          Already have an account? <a onclick="switchTab('login')" style="color:var(--teal);cursor:pointer;font-weight:500">Sign in</a>
+        </p>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+// Check if already logged in
+fetch('auth.php?action=check')
+  .then(r=>r.json())
+  .then(d=>{ if(d.loggedIn) window.location.href='dashboard.html'; })
+  .catch(()=>{});
+
+function switchTab(tab) {
+  document.querySelectorAll('.auth-tab').forEach((t,i)=>t.classList.toggle('active', (i===0&&tab==='login')||(i===1&&tab==='register')));
+  document.getElementById('loginPanel').classList.toggle('active', tab==='login');
+  document.getElementById('registerPanel').classList.toggle('active', tab==='register');
+  hideAlert();
+}
+
+function showAlert(msg, type='error') {
+  const el = document.getElementById('alert');
+  el.textContent = (type==='error'?'⚠️ ':'✅ ') + msg;
+  el.className = 'alert show ' + type;
+}
+function hideAlert() {
+  document.getElementById('alert').className = 'alert';
+}
+
+function setLoading(btn, spinner, text, loading) {
+  document.getElementById(btn).disabled = loading;
+  document.getElementById(spinner).style.display = loading ? 'block' : 'none';
+  document.getElementById(text).textContent = loading ? 'Please wait...' : (btn==='loginBtn' ? 'Sign In →' : 'Create Account →');
+}
+
+async function handleLogin() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const pass  = document.getElementById('loginPass').value;
+  if (!email || !pass) return showAlert('Please fill in all fields');
+  setLoading('loginBtn','loginSpinner','loginBtnText',true);
+  try {
+    const res = await fetch('auth.php?action=login', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({email, password:pass})
+    });
+    const data = await res.json();
+    if (data.success) {
+      showAlert('Login successful! Redirecting...','success');
+      setTimeout(()=>window.location.href='dashboard.html', 800);
+    } else {
+      showAlert(data.error || 'Login failed');
+    }
+  } catch(e) { showAlert('Server error. Please check your PHP/MySQL setup.'); }
+  finally { setLoading('loginBtn','loginSpinner','loginBtnText',false); }
+}
+
+async function handleRegister() {
+  const name  = document.getElementById('regName').value.trim();
+  const phone = document.getElementById('regPhone').value.trim();
+  const email = document.getElementById('regEmail').value.trim();
+  const pass  = document.getElementById('regPass').value;
+  const dob   = document.getElementById('regDob').value;
+  const gender= document.getElementById('regGender').value;
+  if (!name || !email || !pass) return showAlert('Name, email and password are required');
+  setLoading('regBtn','regSpinner','regBtnText',true);
+  try {
+    const res = await fetch('auth.php?action=register', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({full_name:name,email,password:pass,phone,date_of_birth:dob,gender})
+    });
+    const data = await res.json();
+    if (data.success) {
+      showAlert('Account created! Redirecting...','success');
+      setTimeout(()=>window.location.href='dashboard.html', 800);
+    } else {
+      showAlert(data.error || 'Registration failed');
+    }
+  } catch(e) { showAlert('Server error. Please check your PHP/MySQL setup.'); }
+  finally { setLoading('regBtn','regSpinner','regBtnText',false); }
+}
+
+// Enter key
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    const activePanel = document.querySelector('.form-panel.active').id;
+    if (activePanel === 'loginPanel') handleLogin();
+    else handleRegister();
+  }
+});
+</script>
+</body>
+</html>
